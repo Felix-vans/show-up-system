@@ -1,0 +1,27 @@
+{
+  "_comment": "Voorbeeldbestand. Kopieer naar users.json en pas aan. Geen wachtwoorden hier — die horen in .env thuis.",
+  "users": [
+    {
+      "id": "felix",
+      "name": "Felix",
+      "color": "#1a73e8",
+      "notify_email": "",
+      "meet_link": ""
+    },
+    {
+      "id": "anando",
+      "name": "Anando",
+      "color": "#7c3aed",
+      "notify_email": "",
+      "meet_link": ""
+    },
+    {
+      "id": "jules",
+      "name": "Jules",
+      "color": "#0f9d58",
+      "notify_email": "",
+      "meet_link": "",
+      "_optioneel": "Zodra Jules een eigen zakelijke mailbox heeft, voeg hier 'smtp_address' en 'smtp_password' toe. Dan verstuurt hij vanuit zijn eigen adres in plaats van het gedeelde."
+    }
+  ]
+}

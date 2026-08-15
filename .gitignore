@@ -1,0 +1,14 @@
+# Geheimen — mogen NOOIT op GitHub
+.env
+
+# Data: database, logs, back-ups, scheduler-lock
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Windows-only hulpbestanden (lokaal handig, niet nodig op de server)
+*.ps1

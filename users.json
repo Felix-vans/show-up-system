@@ -1,0 +1,26 @@
+{
+  "_comment": "Geen wachtwoorden hier — die staan in .env (SMTP_ADDRESS / SMTP_PASSWORD). Wil je later dat iemand vanuit zijn eigen mailbox verstuurt? Voeg dan bij die persoon 'smtp_address' en 'smtp_password' toe; dat wint dan van .env.",
+  "users": [
+    {
+      "id": "felix",
+      "name": "Felix",
+      "color": "#1a73e8",
+      "notify_email": "",
+      "meet_link": ""
+    },
+    {
+      "id": "anando",
+      "name": "Anando",
+      "color": "#7c3aed",
+      "notify_email": "",
+      "meet_link": ""
+    },
+    {
+      "id": "jules",
+      "name": "Jules",
+      "color": "#0f9d58",
+      "notify_email": "",
+      "meet_link": ""
+    }
+  ]
+}

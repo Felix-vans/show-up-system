@@ -1,0 +1,33 @@
+[Unit]
+Description=Oryn Show-Up System
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# ---- AANPASSEN indien nodig -------------------------------------
+# Vervang 'felix' door je Linux-gebruikersnaam op de server, en het pad
+# door de map waarin je de repo hebt gecloned.
+User=felix
+WorkingDirectory=/home/felix/show-up-system
+ExecStart=/home/felix/show-up-system/.venv/bin/gunicorn \
+    --workers 2 \
+    --threads 4 \
+    --timeout 60 \
+    --bind 0.0.0.0:5000 \
+    wsgi:app
+# -----------------------------------------------------------------
+
+EnvironmentFile=/home/felix/show-up-system/.env
+
+# Herstart automatisch bij een crash
+Restart=always
+RestartSec=5
+
+# Logging naar journalctl
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

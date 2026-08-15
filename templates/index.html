@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Oryn Show-Up System</title>
+    <style>
+        :root { --line: #e6e6e6; --muted: #8a8a8a; --ink: #1a1a1a; --accent: #1a73e8; }
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 1320px; margin: 32px auto; padding: 20px; background: #f7f7f8; color: var(--ink); }
+        header.topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        h1 { margin: 0; font-size: 26px; }
+        .subtitle { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
+        .user-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; background: white; border: 1px solid var(--line); border-radius: 20px; font-size: 13px; font-weight: 600; }
+        .user-badge .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .logout-btn { background: none; border: none; color: #999; font-size: 12px; cursor: pointer; margin-left: 6px; padding: 0; text-decoration: underline; }
+        .logout-btn:hover { color: #c53030; }
+
+        /* --- stats --- */
+        .stats { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat { background: white; border: 1px solid var(--line); border-radius: 8px; padding: 12px 18px; min-width: 120px; }
+        .stat .num { font-size: 24px; font-weight: 700; line-height: 1.1; }
+        .stat .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-top: 2px; }
+        .stat.hot { border-color: #f5c6cb; background: #fff8f8; }
+        .stat.hot .num { color: #c53030; }
+        .stat.act { border-color: #ffe0a3; background: #fffdf7; }
+        .stat.act .num { color: #9a6700; }
+
+        /* --- add form --- */
+        form.add-form { background: white; padding: 22px 24px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 26px; border: 1px solid var(--line); }
+        form.add-form h2 { margin: 0 0 4px; font-size: 17px; }
+        form.add-form .hint { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+        label { display: block; margin-top: 12px; font-weight: 600; font-size: 12px; }
+        input, select { width: 100%; padding: 9px 10px; margin-top: 4px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; font-family: inherit; }
+        input:focus, select:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+        .row { display: flex; gap: 12px; flex-wrap: wrap; }
+        .row > div { flex: 1; min-width: 150px; }
+        .mode-toggle { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+        .mode-toggle label.pill { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 13px; margin: 0; padding: 11px 14px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; flex: 1; min-width: 200px; background: white; }
+        .mode-toggle label.pill input { width: auto; margin: 0; }
+        .mode-toggle label.pill.active { border-color: var(--ink); background: #f2f2f2; font-weight: 600; }
+        .checkbox-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+        .checkbox-row input { width: auto; margin: 0; }
+        .checkbox-row label { margin: 0; font-weight: 500; font-size: 13px; }
+        button { padding: 11px 22px; background: var(--ink); color: white; border: none; border-radius: 5px; font-weight: 600; cursor: pointer; font-size: 14px; font-family: inherit; }
+        button:hover { background: #383838; }
+        #submit-btn { margin-top: 18px; width: 100%; padding: 13px; font-size: 15px; }
+
+        /* --- quick presets --- */
+        .presets { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+        .preset { background: #f0f0f2; color: #333; border: 1px solid #e0e0e2; padding: 5px 11px; font-size: 12px; font-weight: 500; border-radius: 20px; cursor: pointer; }
+        .preset:hover { background: var(--ink); color: white; border-color: var(--ink); }
+
+        /* --- action buttons in table --- */
+        .cancel-btn { background: white; color: #c53030; border: 1px solid #f0c3c3; padding: 5px 11px; font-size: 12px; }
+        .cancel-btn:hover { background: #c53030; color: white; }
+        .delete-btn { background: none; color: #bbb; padding: 4px 8px; font-size: 15px; border: 1px solid transparent; line-height: 1; }
+        .delete-btn:hover { background: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+        .gcal-btn { display: inline-block; background: white; color: var(--accent); border: 1px solid #c3d9f5; padding: 5px 10px; font-size: 12px; font-weight: 600; border-radius: 5px; text-decoration: none; line-height: 1.4; }
+        .gcal-btn:hover { background: var(--accent); color: white; }
+        .mini-btn { display: inline-block; padding: 5px 11px; font-size: 12px; font-weight: 600; border-radius: 5px; border: 1px solid #ddd; background: white; color: #333; cursor: pointer; }
+        .mini-btn:hover { background: #f0f0f0; }
+        .mini-btn.primary { border-color: var(--ink); background: var(--ink); color: white; }
+        .mini-btn.primary:hover { background: #383838; }
+        .mini-btn.fit { border-color: #a7d3b3; color: #155724; }
+        .mini-btn.fit:hover { background: #155724; color: white; }
+        .mini-btn.no-fit { border-color: #f0c3c3; color: #721c24; }
+        .mini-btn.no-fit:hover { background: #721c24; color: white; }
+        .btn-stack { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; }
+        .btn-stack form { display: inline; margin: 0; }
+
+        .inline-panel { display: none; background: #fafafa; border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin-top: 10px; text-align: left; }
+        .inline-panel.open { display: block; }
+        .inline-panel .row { gap: 8px; }
+        .inline-panel input, .inline-panel select { padding: 7px 8px; font-size: 13px; }
+        .inline-panel button { margin-top: 8px; padding: 8px 14px; font-size: 13px; }
+        .inline-panel .panel-title { font-size: 12px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+
+        /* --- toolbar + tabs --- */
+        .toolbar { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+        #search { flex: 1; min-width: 220px; padding: 10px 14px; font-size: 14px; border: 1px solid #ddd; border-radius: 6px; background: white; margin: 0; }
+        #search:focus { outline: none; border-color: var(--ink); }
+        .filter-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; background: white; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; white-space: nowrap; user-select: none; margin: 0; }
+        .filter-toggle input { width: auto; margin: 0; }
+        .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+        .tab { background: white; border: 1px solid #ddd; padding: 8px 15px; border-radius: 20px; font-size: 13px; cursor: pointer; font-weight: 500; color: #444; }
+        .tab:hover { border-color: #999; }
+        .tab.active { background: var(--ink); color: white; border-color: var(--ink); font-weight: 600; }
+
+        /* --- table --- */
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid var(--line); }
+        th, td { padding: 13px 12px; text-align: left; border-bottom: 1px solid #f0f0f0; font-size: 13px; vertical-align: top; }
+        th { background: #fbfbfc; font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); position: sticky; top: 0; z-index: 1; }
+        tr:last-child td { border-bottom: none; }
+        tr.today-row { background: #fffdf5; }
+        tr.today-row td:first-child { box-shadow: inset 3px 0 0 #d69e2e; }
+        .status { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+        .status.ok { background: #d4edda; color: #155724; }
+        .status.pending { background: #fff3cd; color: #856404; }
+        .status.cancelled { background: #f8d7da; color: #721c24; }
+        .status.past { background: #ececec; color: #555; }
+        .status.interested { background: #ddeaff; color: #1a3a8f; }
+        .status.no-fit { background: #f8d7da; color: #721c24; }
+        .status.today { background: #d69e2e; color: white; }
+        .owner-tag { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; color: white; }
+        .flash { padding: 12px 16px; border-radius: 6px; margin-bottom: 14px; font-size: 14px; }
+        .flash.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .past-row { opacity: 0.55; }
+        .past-row:hover { opacity: 1; }
+        .empty { text-align: center; padding: 40px; color: #aaa; }
+        .actions { white-space: normal; text-align: right; min-width: 230px; }
+        .muted { color: var(--muted); }
+        .small { font-size: 11px; color: #8a8a8a; }
+        .name-main { font-weight: 600; font-size: 14px; }
+        .footer-note { margin-top: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .footer-note .small { font-size: 12px; }
+        .ghost-btn { background: white; color: #444; border: 1px solid #ddd; padding: 8px 14px; font-size: 13px; font-weight: 500; }
+        .ghost-btn:hover { background: #f0f0f0; color: var(--ink); }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <h1>Oryn Show-Up System</h1>
+        {% if current_user %}
+        <div>
+            <span class="user-badge">
+                <span class="dot" style="background: {{ current_user.color }};"></span>
+                {{ current_user.name }}
+            </span>
+            <form method="POST" action="/logout" style="display:inline;">
+                <button type="submit" class="logout-btn">wissel</button>
+            </form>
+        </div>
+        {% endif %}
+    </header>
+    <div class="subtitle">Europe/Brussels &middot; server moet draaien voor reminders + ochtend-overzicht</div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <div class="stats">
+        <div class="stat {% if stats.today %}hot{% endif %}">
+            <div class="num">{{ stats.today }}</div>
+            <div class="lbl">vandaag</div>
+        </div>
+        <div class="stat">
+            <div class="num">{{ stats.upcoming }}</div>
+            <div class="lbl">meetings gepland</div>
+        </div>
+        <div class="stat">
+            <div class="num">{{ stats.interested }}</div>
+            <div class="lbl">niet overtuigd</div>
+        </div>
+        <div class="stat {% if stats.actions %}act{% endif %}">
+            <div class="num">{{ stats.actions }}</div>
+            <div class="lbl">actie nodig</div>
+        </div>
+    </div>
+
+    <form class="add-form" method="POST" action="/add" id="add-form">
+        <h2>Nieuwe lead</h2>
+        <div class="hint">Vul in tijdens of vlak na de call &mdash; de juiste mail vertrekt automatisch.</div>
+
+        <div class="row">
+            <div>
+                <label for="name">Naam contactpersoon</label>
+                <input id="name" type="text" name="name" required autofocus autocomplete="off">
+            </div>
+            <div>
+                <label for="company">Bedrijf</label>
+                <input id="company" type="text" name="company" required autocomplete="off">
+            </div>
+        </div>
+
+        <div class="row">
+            <div>
+                <label for="email">Email</label>
+                <input id="email" type="email" name="email" required autocomplete="off">
+            </div>
+            <div>
+                <label for="niche">Niche <span class="muted" style="font-weight:400;">(wordt onthouden)</span></label>
+                <input id="niche" type="text" name="niche" placeholder="bv. bouwbedrijven" autocomplete="off">
+            </div>
+        </div>
+
+        <div class="row">
+            <div>
+                <label for="phone">Telefoon</label>
+                <input id="phone" type="tel" name="phone" placeholder="leeg laten als je geen nummer hebt" autocomplete="off">
+            </div>
+            <div>
+                <label for="contact_type">Welk nummer is dit?</label>
+                <select id="contact_type" name="contact_type">
+                    <option value="personal">Persoonlijk nummer</option>
+                    <option value="reception">Enkel onthaal</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="checkbox-row">
+            <input id="whatsapp_consent" type="checkbox" name="whatsapp_consent">
+            <label for="whatsapp_consent">Toestemming voor WhatsApp gekregen</label>
+        </div>
+
+        <div class="mode-toggle">
+            <label class="pill active" id="mode-book-label">
+                <input type="radio" name="booking_mode" value="book" checked>
+                Meeting nu boeken
+            </label>
+            <label class="pill" id="mode-interested-label">
+                <input type="radio" name="booking_mode" value="interested">
+                Nog niet overtuigd &mdash; follow-up sturen
+            </label>
+        </div>
+
+        <div id="datetime-fields">
+            <div class="row">
+                <div>
+                    <label for="meeting_date">Datum</label>
+                    <input id="meeting_date" type="date" name="meeting_date">
+                    <div class="presets">
+                        <button type="button" class="preset" data-days="0">vandaag</button>
+                        <button type="button" class="preset" data-days="1">morgen</button>
+                        <button type="button" class="preset" data-days="2">+2d</button>
+                        <button type="button" class="preset" data-days="3">+3d</button>
+                        <button type="button" class="preset" data-days="7">+1 week</button>
+                    </div>
+                </div>
+                <div>
+                    <label for="meeting_time">Tijd</label>
+                    <input id="meeting_time" type="time" name="meeting_time" step="900">
+                    <div class="presets">
+                        <button type="button" class="preset" data-time="09:00">09:00</button>
+                        <button type="button" class="preset" data-time="10:00">10:00</button>
+                        <button type="button" class="preset" data-time="11:00">11:00</button>
+                        <button type="button" class="preset" data-time="14:00">14:00</button>
+                        <button type="button" class="preset" data-time="15:00">15:00</button>
+                        <button type="button" class="preset" data-time="16:00">16:00</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" id="submit-btn">Lead toevoegen + bevestigingsmail sturen</button>
+    </form>
+
+    <div class="tabs" id="tabs">
+        <button type="button" class="tab active" data-bucket="all">Alles</button>
+        <button type="button" class="tab" data-bucket="meeting">Meetings ({{ stats.upcoming }})</button>
+        <button type="button" class="tab" data-bucket="interested">Niet overtuigd ({{ stats.interested }})</button>
+        <button type="button" class="tab" data-bucket="action">Actie nodig ({{ stats.actions }})</button>
+        <button type="button" class="tab" data-bucket="afgesloten">Afgesloten</button>
+    </div>
+
+    <div class="toolbar">
+        <input id="search" type="search" placeholder="Zoek op naam, bedrijf of email..." autocomplete="off">
+        <label class="filter-toggle">
+            <input type="checkbox" id="mine-only">
+            Alleen mijn leads
+        </label>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Verkoper</th>
+                <th>Naam / Bedrijf</th>
+                <th>Contact</th>
+                <th>Status</th>
+                <th>Meeting</th>
+                <th>Mails</th>
+                <th>Filmpje</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="leads-body">
+            {% for m in leads %}
+            <tr class="{% if m.is_past or m.cancelled %}past-row{% endif %} {% if m.is_today and m.bucket == 'meeting' %}today-row{% endif %}"
+                data-search="{{ (m.name ~ ' ' ~ m.company ~ ' ' ~ m.email ~ ' ' ~ (m.niche or ''))|lower }}"
+                data-owner="{{ m.owner_id }}"
+                data-bucket="{{ m.bucket }}"
+                data-action="{{ '1' if m.needs_action else '0' }}">
+                <td><span class="owner-tag" style="background: {{ m.owner_color }};">{{ m.owner_name }}</span></td>
+                <td>
+                    <span class="name-main">{{ m.name }}</span><br>
+                    <span class="small">{{ m.company }}{% if m.niche %} &middot; {{ m.niche }}{% endif %}</span><br>
+                    <span class="small">{{ m.email }}</span>
+                </td>
+                <td>
+                    {% if m.phone %}{{ m.phone }}<br>{% endif %}
+                    <span class="small">{% if m.contact_type == 'personal' and m.phone %}persoonlijk{% elif m.contact_type == 'reception' and m.phone %}onthaal{% else %}geen nummer{% endif %}{% if m.whatsapp_consent %} &middot; WA ok{% endif %}</span>
+                </td>
+                <td>
+                    {% if m.cancelled %}<span class="status cancelled">geannuleerd</span>
+                    {% elif m.status == 'interested' %}<span class="status interested">niet overtuigd</span>
+                    {% elif m.status == 'booked' and m.is_past %}
+                        {% if m.outcome == 'fit' %}<span class="status ok">fit</span>
+                        {% elif m.outcome == 'no_fit' %}<span class="status no-fit">geen fit</span>
+                        {% else %}<span class="status past">resultaat?</span>{% endif %}
+                    {% elif m.is_today %}<span class="status today">vandaag</span>
+                    {% else %}<span class="status ok">gepland</span>{% endif %}
+                </td>
+                <td>
+                    {% if m.when_label %}<strong>{{ m.when_label }}</strong><br><span class="small">{{ m.display_datetime }}</span>
+                    {% elif m.display_datetime %}{{ m.display_datetime }}
+                    {% else %}<span class="muted">&mdash;</span>{% endif %}
+                </td>
+                <td>
+                    {% if m.status == 'booked' %}
+                        {% if m.confirm_sent %}<span class="status ok">bevestiging</span>{% else %}<span class="status pending">bevestiging</span>{% endif %}<br>
+                        {% if m.reminder_27h_sent %}<span class="status ok">27u</span>{% else %}<span class="status pending">27u</span>{% endif %}
+                    {% else %}
+                        {% if m.followup_sent %}<span class="status ok">follow-up</span>{% else %}<span class="status pending">follow-up</span>{% endif %}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not m.phone %}<span class="muted small">geen nummer</span>
+                    {% elif m.video_sent %}<span class="status ok">verstuurd</span>
+                    {% elif m.video_needed %}<span class="status pending">te sturen</span>
+                    {% else %}<span class="muted small">n.v.t.</span>{% endif %}
+                </td>
+                <td class="actions">
+                    <div class="btn-stack">
+                    {% if not m.cancelled %}
+                        {% if m.status == 'interested' %}
+                            <button type="button" class="mini-btn primary" onclick="togglePanel('book-{{ m.id }}')">boek nu</button>
+                        {% endif %}
+
+                        {% if not m.phone or m.contact_type != 'personal' %}
+                            <button type="button" class="mini-btn" onclick="togglePanel('contact-{{ m.id }}')">+ nummer</button>
+                        {% endif %}
+
+                        {% if m.phone and m.video_needed and not m.video_sent %}
+                        <form method="POST" action="/video_sent/{{ m.id }}">
+                            <button type="submit" class="mini-btn">filmpje verstuurd</button>
+                        </form>
+                        {% endif %}
+
+                        {% if m.status == 'booked' and m.is_past and not m.outcome %}
+                        <form method="POST" action="/outcome/{{ m.id }}/fit">
+                            <button type="submit" class="mini-btn fit">fit</button>
+                        </form>
+                        <form method="POST" action="/outcome/{{ m.id }}/no_fit">
+                            <button type="submit" class="mini-btn no-fit">geen fit</button>
+                        </form>
+                        {% endif %}
+
+                        {% if m.gcal_url %}
+                        <a class="gcal-btn" href="{{ m.gcal_url }}" target="_blank" rel="noopener"
+                           title="Zet in jouw eigen Google Agenda — de prospect kreeg zijn uitnodiging al via de mail, dit stuurt hem niet nog een keer">agenda</a>
+                        {% endif %}
+
+                        {% if m.status == 'booked' and not m.is_past %}
+                        <form method="POST" action="/cancel/{{ m.id }}"
+                              onsubmit="return confirm('Meeting annuleren? Er worden geen reminders meer verstuurd.');">
+                            <button type="submit" class="cancel-btn">annuleer</button>
+                        </form>
+                        {% elif m.status == 'interested' %}
+                        <form method="POST" action="/cancel/{{ m.id }}"
+                              onsubmit="return confirm('Deze lead afsluiten? Er wordt niets meer opgevolgd.');">
+                            <button type="submit" class="cancel-btn">afsluiten</button>
+                        </form>
+                        {% else %}
+                        <form method="POST" action="/delete/{{ m.id }}"
+                              onsubmit="return confirm('Definitief verwijderen?');">
+                            <button type="submit" class="delete-btn" title="Verwijderen">&#128465;</button>
+                        </form>
+                        {% endif %}
+                    {% else %}
+                        <form method="POST" action="/uncancel/{{ m.id }}">
+                            <button type="submit" class="mini-btn" title="Toch weer actief zetten">herstel</button>
+                        </form>
+                        <form method="POST" action="/delete/{{ m.id }}"
+                              onsubmit="return confirm('Definitief verwijderen?');">
+                            <button type="submit" class="delete-btn" title="Verwijderen">&#128465;</button>
+                        </form>
+                    {% endif %}
+                    </div>
+
+                    {% if not m.cancelled %}
+                    <div class="inline-panel" id="panel-book-{{ m.id }}">
+                        <div class="panel-title">Meeting inplannen</div>
+                        <form method="POST" action="/book/{{ m.id }}">
+                            <div class="row">
+                                <div>
+                                    <input type="date" name="meeting_date" required>
+                                    <div class="presets">
+                                        <button type="button" class="preset" data-days="1">morgen</button>
+                                        <button type="button" class="preset" data-days="2">+2d</button>
+                                        <button type="button" class="preset" data-days="3">+3d</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <input type="time" name="meeting_time" step="900" required>
+                                    <div class="presets">
+                                        <button type="button" class="preset" data-time="10:00">10:00</button>
+                                        <button type="button" class="preset" data-time="14:00">14:00</button>
+                                        <button type="button" class="preset" data-time="16:00">16:00</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit">Bevestig + stuur mail</button>
+                        </form>
+                    </div>
+
+                    <div class="inline-panel" id="panel-contact-{{ m.id }}">
+                        <div class="panel-title">Telefoonnummer toevoegen</div>
+                        <form method="POST" action="/contact/{{ m.id }}">
+                            <div class="row">
+                                <div><input type="tel" name="phone" placeholder="Telefoonnummer" required></div>
+                                <div>
+                                    <select name="contact_type">
+                                        <option value="personal">Persoonlijk</option>
+                                        <option value="reception">Onthaal</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <label style="font-weight: 400; display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px;">
+                                <input type="checkbox" name="whatsapp_consent" style="width: auto;" checked> WhatsApp toestemming
+                            </label>
+                            <button type="submit">Opslaan</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            {% if not leads %}
+            <tr id="empty-row"><td colspan="8" class="empty">Nog geen leads. Voeg je eerste toe hierboven.</td></tr>
+            {% endif %}
+            <tr id="no-match-row" style="display:none;"><td colspan="8" class="empty">Geen leads die aan deze filter voldoen.</td></tr>
+        </tbody>
+    </table>
+
+    <div class="footer-note">
+        <span class="small muted">Het ochtend-overzicht vertrekt automatisch elke dag. Wil je nu al zien hoe het eruitziet?</span>
+        <form method="POST" action="/digest_test" style="margin:0;">
+            <button type="submit" class="ghost-btn">Stuur mij het overzicht nu (test)</button>
+        </form>
+    </div>
+
+    <script>
+        const currentUserId = {{ (current_user.id if current_user else '')|tojson }};
+        const search = document.getElementById('search');
+        const mineOnly = document.getElementById('mine-only');
+        const rows = document.querySelectorAll('#leads-body tr[data-search]');
+        const noMatchRow = document.getElementById('no-match-row');
+        let activeBucket = 'all';
+
+        function applyFilters() {
+            const q = search.value.trim().toLowerCase();
+            const onlyMine = mineOnly.checked;
+            let visible = 0;
+            rows.forEach(row => {
+                const matchesSearch = !q || row.dataset.search.includes(q);
+                const matchesOwner = !onlyMine || row.dataset.owner === currentUserId;
+                let matchesBucket = true;
+                if (activeBucket === 'action') matchesBucket = row.dataset.action === '1';
+                else if (activeBucket !== 'all') matchesBucket = row.dataset.bucket === activeBucket;
+                const show = matchesSearch && matchesOwner && matchesBucket;
+                row.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+            if (noMatchRow) noMatchRow.style.display = (rows.length && visible === 0) ? '' : 'none';
+        }
+
+        search.addEventListener('input', applyFilters);
+        mineOnly.addEventListener('change', applyFilters);
+
+        document.querySelectorAll('#tabs .tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('#tabs .tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                activeBucket = tab.dataset.bucket;
+                applyFilters();
+            });
+        });
+
+        function togglePanel(id) {
+            const panel = document.getElementById('panel-' + id);
+            if (!panel) return;
+            const opening = !panel.classList.contains('open');
+            document.querySelectorAll('.inline-panel.open').forEach(p => p.classList.remove('open'));
+            if (opening) {
+                panel.classList.add('open');
+                const first = panel.querySelector('input');
+                if (first) first.focus();
+            }
+        }
+
+        // Quick date/time presets — work in the main form and every inline panel
+        document.addEventListener('click', e => {
+            const btn = e.target.closest('.preset');
+            if (!btn) return;
+            const scope = btn.closest('form') || document;
+            if (btn.dataset.days !== undefined) {
+                const d = new Date();
+                d.setDate(d.getDate() + parseInt(btn.dataset.days, 10));
+                const iso = d.getFullYear() + '-' +
+                    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(d.getDate()).padStart(2, '0');
+                const input = scope.querySelector('input[type="date"]');
+                if (input) input.value = iso;
+            }
+            if (btn.dataset.time !== undefined) {
+                const input = scope.querySelector('input[type="time"]');
+                if (input) input.value = btn.dataset.time;
+            }
+        });
+
+        // Booking mode toggle
+        const bookRadio = document.querySelector('input[name="booking_mode"][value="book"]');
+        const interestedRadio = document.querySelector('input[name="booking_mode"][value="interested"]');
+        const dateInput = document.getElementById('meeting_date');
+        const timeInput = document.getElementById('meeting_time');
+        const datetimeFields = document.getElementById('datetime-fields');
+        const submitBtn = document.getElementById('submit-btn');
+        const bookLabel = document.getElementById('mode-book-label');
+        const interestedLabel = document.getElementById('mode-interested-label');
+
+        function syncMode() {
+            const booking = bookRadio.checked;
+            dateInput.required = booking;
+            timeInput.required = booking;
+            datetimeFields.style.display = booking ? '' : 'none';
+            submitBtn.textContent = booking
+                ? 'Lead toevoegen + bevestigingsmail sturen'
+                : 'Lead toevoegen + follow-upmail sturen';
+            bookLabel.classList.toggle('active', booking);
+            interestedLabel.classList.toggle('active', !booking);
+        }
+        bookRadio.addEventListener('change', syncMode);
+        interestedRadio.addEventListener('change', syncMode);
+        syncMode();
+
+        // Remember the niche between leads — you usually call one sector per session
+        const nicheInput = document.getElementById('niche');
+        const savedNiche = localStorage.getItem('oryn_niche');
+        if (savedNiche && !nicheInput.value) nicheInput.value = savedNiche;
+        document.getElementById('add-form').addEventListener('submit', () => {
+            localStorage.setItem('oryn_niche', nicheInput.value.trim());
+        });
+
+        // Prevent an accidental double-submit sending the same mail twice
+        document.querySelectorAll('form[method="POST"]').forEach(f => {
+            f.addEventListener('submit', () => {
+                const btn = f.querySelector('button[type="submit"]');
+                if (btn) setTimeout(() => { btn.disabled = true; btn.style.opacity = '0.6'; }, 0);
+            });
+        });
+
+        // Auto-hide flash messages so they don't pile up visually
+        setTimeout(() => {
+            document.querySelectorAll('.flash.success').forEach(f => {
+                f.style.transition = 'opacity 0.6s';
+                f.style.opacity = '0';
+                setTimeout(() => f.remove(), 600);
+            });
+        }, 6000);
+    </script>
+</body>
+</html>
