@@ -101,42 +101,86 @@ chmod 600 .env
 
 ### 2.5 Eerste test met de hand
 
+Je Ubuntu Server heeft geen scherm/browser — dat hoeft ook niet. Start de app:
+
 ```bash
 .venv/bin/gunicorn --bind 0.0.0.0:5000 wsgi:app
 ```
 
-Open in een browser op je server: `http://localhost:5000`
-Zie je het inlogscherm met Felix, Anando en Jules? Dan werkt het.
-Stop met `Ctrl+C`.
+Open een **tweede terminalvenster naar dezelfde server** (nieuwe SSH-sessie)
+en test vanaf daar met curl:
+
+```bash
+curl -s http://localhost:5000/login | grep -o 'value="[a-z]*"'
+```
+
+Zie je `value="felix"`, `value="anando"` en `value="jules"`? Dan werkt het.
+
+Ga terug naar het eerste venster en stop met `Ctrl+C`.
+
+De écht bruikbare test is vanaf een browser op je eigen pc, via het
+Tailscale-adres van de server &mdash; dat komt in Deel 4.
 
 ---
 
-## Deel 3 — Automatisch laten draaien
+## Deel 3 — Automatisch laten draaien (met PM2)
 
-### 3.1 Service installeren
+Je gebruikte PM2 al voor je vorige app op deze server — dat gebruiken we
+hier ook, in plaats van systemd.
 
-Pas eerst de gebruikersnaam en paden aan als die bij jou anders zijn:
-
-```bash
-nano oryn-showup.service
-```
-
-Installeer daarna:
+### 3.1 PM2 installeren (indien nog niet aanwezig)
 
 ```bash
-sudo cp oryn-showup.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable oryn-showup
-sudo systemctl start oryn-showup
+pm2 --version
 ```
 
-### 3.2 Controleren
+Geeft dat een foutmelding, dan is Node.js/PM2 nog niet aanwezig:
 
 ```bash
-sudo systemctl status oryn-showup
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt install -y nodejs
+sudo npm install -g pm2
 ```
 
-Je wil `active (running)` zien.
+### 3.2 Start-script uitvoerbaar maken
+
+```bash
+chmod +x start_server.sh
+```
+
+Dit scriptje leest je `.env` in en start gunicorn met de juiste poort
+(`BIND`) — daardoor moet je de poort maar op één plek aanpassen, niet in
+een apart PM2-configbestand.
+
+### 3.3 App starten onder PM2
+
+```bash
+pm2 start ./start_server.sh --name oryn-showup
+```
+
+### 3.4 Zorgen dat PM2 herstart na een reboot van je server
+
+```bash
+pm2 save
+pm2 startup
+```
+
+Dat laatste commando print een regel die begint met `sudo env PATH=...`
+— kopieer en voer die exact uit. Dat is eenmalig; daarna overleeft PM2
+zelf een herstart van je server, en PM2 op zijn beurt herstart altijd
+`oryn-showup`.
+
+### 3.5 Controleren
+
+```bash
+pm2 status
+```
+
+Je wil `oryn-showup` zien staan met status `online`.
+
+```bash
+pm2 logs oryn-showup --lines 50
+```
 
 Om te controleren of de reminders draaien:
 
@@ -146,6 +190,10 @@ grep "Scheduler started" ~/show-up-system/data/app.log
 
 Je hoort **precies één** zo'n regel te zien. Staan er meerdere, laat het weten —
 dan zouden prospects dubbele mails kunnen krijgen.
+
+> **Draai je toch liever met systemd?** Er staat ook een kant-en-klaar
+> `oryn-showup.service` bestand in de repo. Gebruik dan die in plaats van
+> PM2 — niet allebei tegelijk, dat botst op dezelfde poort.
 
 ---
 
@@ -193,7 +241,7 @@ git push
 cd ~/show-up-system
 git pull
 .venv/bin/pip install -r requirements.txt
-sudo systemctl restart oryn-showup
+pm2 restart oryn-showup
 ```
 
 Je database en je `.env` blijven onaangeroerd bij een update.
@@ -202,20 +250,21 @@ Je database en je `.env` blijven onaangeroerd bij een update.
 
 ## Als er iets misloopt
 
-**Service start niet**
+**App start niet / staat op "errored" in PM2**
 
 ```bash
-sudo journalctl -u oryn-showup -n 50 --no-pager
+pm2 logs oryn-showup --lines 50
 ```
 
 De laatste regels vertellen meestal precies wat er scheelt (verkeerd pad,
-ontbrekend pakket, fout in `.env`).
+ontbrekend pakket, fout in `.env`, of `start_server.sh` niet uitvoerbaar —
+zie stap 3.2).
 
 **Collega's raken niet op de pagina**
 
-- Draait de service? `sudo systemctl status oryn-showup`
+- Draait de app? `pm2 status`
 - Zit hun toestel in je tailnet? `tailscale status` op de server toont wie verbonden is
-- Firewall: `sudo ufw allow 5000/tcp` (enkel nodig als je ufw gebruikt)
+- Firewall: `sudo ufw allow 6769/tcp` (jouw poort — enkel nodig als je ufw gebruikt)
 
 **Mails vertrekken niet**
 
@@ -232,9 +281,9 @@ Er wordt elke nacht om 03:15 een kopie gemaakt:
 
 ```bash
 ls ~/show-up-system/data/backups/
-sudo systemctl stop oryn-showup
+pm2 stop oryn-showup
 cp ~/show-up-system/data/backups/meetings-JJJJ-MM-DD.db ~/show-up-system/data/meetings.db
-sudo systemctl start oryn-showup
+pm2 start oryn-showup
 ```
 
 ---

@@ -1,3 +1,7 @@
+# Alternatief voor PM2. Gebruik dit bestand ALLEEN als je liever systemd
+# gebruikt in plaats van PM2 (zie DEPLOY.md, Deel 3) — niet allebei
+# tegelijk, dat botst op dezelfde poort.
+
 [Unit]
 Description=Oryn Show-Up System
 After=network-online.target
@@ -11,11 +15,12 @@ Type=simple
 # door de map waarin je de repo hebt gecloned.
 User=felix
 WorkingDirectory=/home/felix/show-up-system
+# De poort komt uit BIND in .env — dus je past hem maar op één plek aan.
 ExecStart=/home/felix/show-up-system/.venv/bin/gunicorn \
     --workers 2 \
     --threads 4 \
     --timeout 60 \
-    --bind 0.0.0.0:5000 \
+    --bind ${BIND} \
     wsgi:app
 # -----------------------------------------------------------------
 
